@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: primegaming
+      MYSQL_DATABASE: prime_gaming
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - nest-network
+
+volumes:
+  mysql_data:
+
+networks:
+  nest-network:
+    driver: bridge
