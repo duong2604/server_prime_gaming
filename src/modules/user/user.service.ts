@@ -19,6 +19,7 @@ export class UserService {
   }
 
   findAll(): Promise<User[]> {
+    throw new BadRequestException('test');
     return this.userRepository.find();
   }
 
