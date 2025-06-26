@@ -51,6 +51,8 @@ export class AuthService {
       expiresIn: this.configService.get('jwt.refreshExpiresIn'),
     });
 
+    await this.userService.updateRefreshToken(user.id, refreshToken);
+
     return {
       access_token: accessToken,
       refresh_token: refreshToken,

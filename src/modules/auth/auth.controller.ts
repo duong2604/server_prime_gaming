@@ -1,20 +1,26 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
   Headers,
+  Post,
+  Request,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from './guards/jwt.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
+    private userService: UserService,
     private configService: ConfigService,
     private jwtService: JwtService,
   ) {}
@@ -34,16 +40,29 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  @Post('refresh')
-  refresh(@Headers('authorization') authHeader: string) {
-    const refreshToken = authHeader?.split(' ')[1];
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logOut(@Request() req) {
+    const id = req.user.userId;
+    await this.userService.updateRefreshToken(id, null);
+  }
 
-    if (!refreshToken) throw new UnauthorizedException('Missing token');
+  @Post('refresh')
+  async refresh(@Headers('authorization') authHeader: string) {
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) throw new UnauthorizedException('Missing token');
 
     try {
-      const payload = this.jwtService.verify(refreshToken, {
+      const payload = this.jwtService.verify(token, {
         secret: this.configService.get('jwt.refreshSecret'),
       });
+
+      const user = await this.userService.findById(payload.sub);
+      if (!user) throw new UnauthorizedException('Invalid token');
+
+      const isMatched = await bcrypt.compare(token, user.refreshToken);
+      if (!isMatched) throw new UnauthorizedException('Invalid token');
 
       const accessToken = this.jwtService.sign({
         sub: payload.sub,

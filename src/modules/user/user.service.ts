@@ -58,4 +58,15 @@ export class UserService {
     await this.userRepository.delete(id);
     return null;
   }
+
+  async updateRefreshToken(
+    userId: number,
+    refreshToken: string,
+  ): Promise<null> {
+    const id = userId;
+
+    await this.userRepository.update(id, { refreshToken });
+
+    return null;
+  }
 }
